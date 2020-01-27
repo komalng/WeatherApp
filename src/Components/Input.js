@@ -1,74 +1,143 @@
-import React,{Component} from "react";
+import React, { Component } from "react";
 import axios from 'axios';
-require('dotenv').config()
-// console.log(process.env.ApiKey,"=-==");
- 
 
-class Input extends Component{
-  constructor(){
+
+
+class Input extends Component {
+  constructor() {
     super();
     this.state = {
-      input:"",
-      city:"",
-      main:"",
-      sky:"",
-      isClicked:false
+      input: "",
+      city: "",
+      main: "",
+      sky: "",
+      isClicked: false,
+      error: ""
     };
   }
-
-  onChange  = event =>{
+  /**
+   * change input value.
+   * @name onChange
+   * @function
+   */
+  onChange = event => {
     event.preventDefault()
-      this.setState({[event.target.name]: event.target.value})
+    this.setState({ [event.target.name]: event.target.value })
   }
 
-  
-  getWeather = (e) =>{
+
+  /**
+   * show the weather details.
+   * @name getWeather
+   * @function
+   */
+
+  getWeather = async e => {
     e.preventDefault()
-    axios.get(`https://api.openweathermap.org/data/2.5/find?q=${this.state.input}&units=imperial&appid=0232360a3413e8978e5fe050bd19bcc2`).then(response =>{
-        this.setState({city: response.data.list[0].name,
-          main:response.data.list[0].main,sky:response.data.list[0].weather[0].main,isClicked:true})
-      }).catch(err => {
-        console.log(err.message)
+    const response = await this.getDetails(this.state.input)
+    try {
+      const responseParsed = response.data.list[0];
+      const city = responseParsed.name;
+      const main = responseParsed.main;
+      const sky = responseParsed.weather[0].main;
+      const isClicked = true;
+      this.setState({
+        city: city,
+        main: main,
+        sky: sky,
+        isClicked: isClicked
       })
-      
-      
+    } catch (e) {
+      switch (e.name) {
+        case "SyntaxError":
+          this.setState({ error: "Sorry our mistake Please try again" })
+          break;
+        default:
+          this.setState({ error: "Please Enter valid City Name" })
+      }
+    }
+  }
+  /**
+   * This function return the url of weather api.
+   * @name getUrl
+   * @function
+   * @param {string} city Name of the city
+   * @return {string} url of weather api.
+   */
+
+  getUrl = city => {
+    const url = `https://api.openweathermap.org/data/2.5/find?q=${city}&units=imperial&appid=0232360a3413e8978e5fe050bd19bcc2`
+    return url;
+  }
+
+  /**
+   * This function gives weather details when city is passed.
+   * @name getDetails
+   * @function
+   * @return {Object} weather data.
+   */
+  getDetails = async (city) => {
+    try {
+      const url = this.getUrl(city)
+      const response = await axios.get(url)
+      return response
+    } catch (e) {
+      // console.log(response,"for response")
+      const errorStatus = e.response.status;
+      // console.log(errorStatus,"this one")
+      switch (errorStatus) {
+        case 400:
+          this.setState({
+            error: "Please Enter City Name"
+          })
+          return {
+            message: "Please Enter City Name",
+            status: 400
+          }
+
+        case 503:
+          this.setState({
+            error: "Url is not working properly Please try again"
+          })
+          return {
+            message: e.message,
+          }
+      }
+    }
+
   }
 
 
-  render (){
-    const br = <br />
+  render() {
+    const br = <br />;
+    const main = this.state.main;
     return <div>
       <h1> Weather of  City</h1>{br}{br}
       <form>
-      <input text = "text" name = "input" placeholder = "Enter City Name :- " onChange = {this.onChange} />{br}{br}
+        <input text="text" name="input" placeholder="Enter City Name :- " onChange={this.onChange} required />{br}{br}
       </form>
-      <button onClick = {this.getWeather}> Enter </button>
+      <button onClick={this.getWeather}> Enter </button>
+      {br}{br}
 
       {
-        this.state.isClicked && <div className = "display">
-  <h4>City:- {this.state.city}</h4>
-  <h3>temperature:{this.state.main.temp} {br}{br}
-  pressure:{this.state.main.pressure}{br}{br}
-  humidity:{this.state.main.humidity}{br}{br}
-  temp_min:{this.state.main.temp_min}{br}{br}
-  temp_max:{this.state.main.temp_max}{br}{br}
-  sea_level:{this.state.main.sea_level}{br}{br}
-  grnd_level:{this.state.main.grnd_level}{br}{br}
-  Sky:- {this.state.sky}
-</h3>
-  </div>
-
-
- 
+        <div className="display">
+          <h4>City:- {this.state.city}</h4>
+          <h3>
+            {/* all weather details display */}
+            temperature:{main.temp} {br}{br}
+            pressure:{main.pressure}{br}{br}
+            humidity:{main.humidity}{br}{br}
+            temp_min:{main.temp_min}{br}{br}
+            temp_max:{main.temp_max}{br}{br}
+            Sky:- {this.state.sky}
+          </h3>
+        </div>
       }
-
-
+      {this.state.error}
 
     </div>
   }
 }
-
-
 
 
 
